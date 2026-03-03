@@ -66,7 +66,7 @@ cp config/secrets.yaml.example config/secrets.yaml
 # 編輯 config/secrets.yaml
 
 # 3. 運行分析
-python src/main.py --mode daily --output-dir docs/reports --no-telegram
+PYTHONPATH=. python src/main.py --mode daily --output-dir docs/reports --no-telegram
 
 # 4. 生成索引
 python scripts/generate_index.py

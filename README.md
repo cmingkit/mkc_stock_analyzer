@@ -95,7 +95,7 @@ nano config/secrets.yaml
 
 ```bash
 # 運行每日分析（輸出到 docs/reports）
-python src/main.py --mode daily --output-dir docs/reports --no-telegram
+PYTHONPATH=. python src/main.py --mode daily --output-dir docs/reports --no-telegram
 
 # 生成本地預覽
 python scripts/generate_index.py
