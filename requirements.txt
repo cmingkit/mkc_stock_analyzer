@@ -1,0 +1,37 @@
+# Stock Analyzer - Production Dependencies
+# Version: 1.0
+# Last Updated: 2026-03-01
+
+# ============================================
+# Data Collection
+# ============================================
+requests>=2.31.0              # HTTP requests for APIs
+yfinance>=0.2.36              # Yahoo Finance API wrapper
+
+# ============================================
+# Data Processing
+# ============================================
+pandas>=2.0.0                 # Data analysis and manipulation
+numpy>=1.24.0                 # Numerical computing
+
+# ============================================
+# Templates and Reports
+# ============================================
+Jinja2>=3.1.0                 # Template engine for HTML reports
+markdown>=3.5.0               # Markdown support
+
+# ============================================
+# Configuration Management
+# ============================================
+PyYAML>=6.0                   # YAML configuration files
+python-dotenv>=1.0.0          # Environment variables from .env
+
+# ============================================
+# Logging and Monitoring
+# ============================================
+loguru>=0.7.0                 # Advanced logging
+
+# ============================================
+# API Rate Limiting
+# ============================================
+ratelimit>=2.2.0              # API rate limiting decorator

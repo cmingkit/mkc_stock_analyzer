@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Sensitive files - NEVER COMMIT
+config/secrets.yaml
+config/secrets.yml
+config/*.key
+config/*.pem
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Local reports (will be generated on CI)
+reports/html/
+reports/pdf/
+reports/json/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Jekyll (GitHub Pages)
+.jekyll-metadata
+
+# Keep empty directories
+!.gitkeep

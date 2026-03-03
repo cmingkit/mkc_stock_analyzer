@@ -1,0 +1,190 @@
+# Stock Watchlist Configuration
+
+# Tech Growth Stocks
+tech_growth:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - TSLA
+  - NVDA
+  - META
+  - NFLX
+  - AMD
+  - INTC
+  - DIS
+  - PYPL
+  - ADBE
+  - CRM
+  - CSCO
+  - NOW
+  - INTU
+  - GILD
+  - QCOM
+  - ORCL
+  - AVGO
+  - SHOP
+  - SNOW
+  - SQ
+  - COIN
+  - BLOCK
+  - ROKU
+  - PLTR
+  - DDOG
+  - RBLX
+  - ZM
+  - UBER
+  - LYFT
+
+# Financial Stocks
+financial:
+  - JPM
+  - BAC
+  - WFC
+  - GS
+  - MS
+  - BLK
+  - SCHW
+  - C
+  - USB
+  - PNC
+  - V
+  - MA
+  - AXP
+  - COF
+  - BK
+
+# Energy Stocks
+energy:
+  - XOM
+  - CVX
+  - COP
+  - SLB
+  - EOG
+  - PSX
+  - VLO
+  - MPC
+  - OXY
+  - FANG
+
+# Industrial Stocks
+industrial:
+  - BA
+  - CAT
+  - GE
+  - HON
+  - MMM
+  - UPS
+  - FDX
+  - LMT
+  - RTX
+  - DE
+  - EMR
+  - ETN
+
+# Healthcare Stocks
+healthcare:
+  - JNJ
+  - UNH
+  - PFE
+  - ABBV
+  - MRK
+  - TMO
+  - ABT
+  - LLY
+  - BMY
+  - AMGN
+  - DHR
+  - BAX
+
+# Retail Stocks
+retail:
+  - WMT
+  - TGT
+  - COST
+  - HD
+  - LOW
+  - TJX
+  - DG
+  - DLTR
+  - BBY
+  - M
+  - KSS
+
+# Semiconductor Stocks
+semiconductor:
+  - NVDA
+  - AMD
+  - INTC
+  - TSM
+  - QCOM
+  - AVGO
+  - TXN
+  - AMAT
+  - LRCX
+  - KLAC
+  - MU
+
+# Telecom & Utilities
+telecom_utility:
+  - T
+  - VZ
+  - TMUS
+  - D
+  - DUK
+  - SO
+  - NEE
+  - AEP
+  - EXC
+  - SRE
+
+# REITs
+reits:
+  - AMT
+  - PLD
+  - CCI
+  - EQIX
+  - SPG
+  - O
+  - WELL
+  - DLR
+  - AVB
+  - EQR
+
+# Auto Stocks
+auto:
+  - TSLA
+  - F
+  - GM
+  - RIVN
+  - LCID
+  - NIO
+  - XPEV
+  - LI
+
+# Consumer Staples
+consumer:
+  - KO
+  - PEP
+  - PG
+  - CL
+  - KMB
+  - K
+  - GIS
+  - CAG
+  - SJM
+  - HSY
+  - MDLZ
+  - STZ
+
+# Value/Undervalued Candidates
+undervalued:
+  - BABA
+  - BIDU
+  - JD
+  - NKE
+  - EBAY
+  - ETSY
+  - W
+  - CHWY
+  - PTON

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | Stock Analyzer Pro</title>
+    <link rel="stylesheet" href="../static/css/report-v2.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="report-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="report-title">{{ title }}</h1>
+                <div class="header-meta">
+                    <span class="meta-item">
+                        <span class="meta-icon">📅</span>
+                        <span class="meta-text">{{ generated_at }}</span>
+                    </span>
+                    <span class="meta-item">
+                        <span class="meta-icon">📊</span>
+                        <span class="meta-text">數據期間: {{ data_period | default('7 天') }}</span>
+                    </span>
+                    <span class="meta-item">
+                        <span class="meta-icon">🎯</span>
+                        <span class="meta-text">{{ stocks_analyzed | default(0) }} 檔股票分析</span>
+                    </span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="market-status {{ market_trend | default('neutral') }}">
+                    <span class="status-label">市場趨勢</span>
+                    <span class="status-value">{{ market_trend_emoji | default('➡️') }} {{ market_trend | default('Neutral') | title }}</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="report-main">
+        <!-- ==================== EXECUTIVE SUMMARY ==================== -->
+        <section class="executive-summary" id="executive-summary">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="title-icon">🎯</span>
+                    Executive Summary - 關鍵決策摘要
+                </h2>
+                <span class="section-badge">必讀</span>
+            </div>
+
+            <!-- Top 3 Recommendations -->
+            <div class="top-recommendations">
+                <h3 class="subsection-title">
+                    <span class="title-icon">⭐</span>
+                    Top 3 推薦股票
+                </h3>
+                <div class="recommendation-cards">
+                    {% for stock in top_stocks[:3] %}
+                    <div class="recommendation-card action-{{ stock.action | lower }} rank-{{ loop.index }}">
+                        <div class="card-rank">{{ loop.index }}</div>
+                        <div class="card-header">
+                            <div class="stock-info">
+                                <h4 class="ticker">{{ stock.ticker }}</h4>
+                                <span class="stock-name">{{ stock.name }}</span>
+                            </div>
+                            <div class="composite-score">
+                                <div class="score-circle" data-score="{{ stock.score }}">
+                                    <span class="score-value">{{ stock.score }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-badge {{ stock.action | lower }}">
+                            {{ stock.action_emoji | default('🟡') }} {{ stock.action | default('HOLD') }}
+                        </div>
+                        
+                        <div class="quick-metrics">
+                            <div class="metric">
+                                <span class="metric-label">風險</span>
+                                <span class="metric-value risk-{{ stock.risk_level | lower }}">{{ stock.risk_level }}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">RSI</span>
+                                <span class="metric-value">{{ "%.1f"|format(stock.rsi) if stock.rsi else 'N/A' }}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">情緒</span>
+                                <span class="metric-value sentiment-{{ stock.sentiment }}">{{ stock.bull_ratio | default(50) | round }}% 看漲</span>
+                            </div>
+                        </div>
+                        
+                        <div class="price-targets">
+                            <div class="target entry">
+                                <span class="target-label">買入價</span>
+                                <span class="target-value">${{ "%.2f"|format(stock.entry_price) if stock.entry_price else 'N/A' }}</span>
+                            </div>
+                            <div class="target profit">
+                                <span class="target-label">目標價</span>
+                                <span class="target-value">${{ "%.2f"|format(stock.target_price) if stock.target_price else 'N/A' }}</span>
+                            </div>
+                            <div class="target stop">
+                                <span class="target-label">停損價</span>
+                                <span class="target-value">${{ "%.2f"|format(stock.stop_loss) if stock.stop_loss else 'N/A' }}</span>
+                            </div>
+                        </div>
+                        
+                        <p class="rationale">{{ stock.rationale | default('基於技術面和基本面綜合分析') }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Market Pulse -->
+            <div class="market-pulse-grid">
+                <!-- Market Sentiment -->
+                <div class="pulse-card sentiment-card">
+                    <h4 class="pulse-title">市場情緒</h4>
+                    <div class="sentiment-meter">
+                        <div class="meter-bar">
+                            <div class="meter-fill" style="width: {{ market_bull_ratio | default(50) }}%;"></div>
+                            <div class="meter-indicator" style="left: {{ market_bull_ratio | default(50) }}%;"></div>
+                        </div>
+                        <div class="meter-labels">
+                            <span class="label-bear">看跌 {{ 100 - (market_bull_ratio | default(50)) }}%</span>
+                            <span class="label-bull">看漲 {{ market_bull_ratio | default(50) }}%</span>
+                        </div>
+                    </div>
+                    <div class="sentiment-stats">
+                        <div class="stat">
+                            <span class="stat-value">{{ bullish_count | default(0) }}</span>
+                            <span class="stat-label">看漲股票</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">{{ bearish_count | default(0) }}</span>
+                            <span class="stat-label">看跌股票</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value">{{ neutral_count | default(0) }}</span>
+                            <span class="stat-label">中性</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Risks -->
+                <div class="pulse-card risks-card">
+                    <h4 class="pulse-title">⚠️ 關鍵風險提示</h4>
+                    <ul class="risk-list">
+                        {% for risk in key_risks[:5] %}
+                        <li class="risk-item risk-{{ risk.level | default('medium') }}">
+                            <span class="risk-icon">{{ risk.icon | default('⚠️') }}</span>
+                            <span class="risk-text">{{ risk.text }}</span>
+                        </li>
+                        {% else %}
+                        <li class="risk-item risk-low">
+                            <span class="risk-icon">✅</span>
+                            <span class="risk-text">目前無重大風險</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Market Alerts -->
+                <div class="pulse-card alerts-card">
+                    <h4 class="pulse-title">🔔 重要提醒</h4>
+                    <div class="alerts-list">
+                        {% for alert in event_alerts[:3] %}
+                        <div class="alert-item alert-{{ alert.severity | default('medium') }}">
+                            <span class="alert-icon">{{ alert.icon | default('📌') }}</span>
+                            <div class="alert-content">
+                                <span class="alert-title">{{ alert.title }}</span>
+                                <span class="alert-time">{{ alert.time }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== DETAILED ANALYSIS ==================== -->
+        <section class="detailed-analysis">
+            <!-- Section Controls -->
+            <div class="analysis-controls">
+                <div class="controls-left">
+                    <h2 class="section-title">
+                        <span class="title-icon">📊</span>
+                        詳細分析區
+                    </h2>
+                </div>
+                <div class="controls-right">
+                    <button class="control-btn" onclick="expandAllSections()">展開全部</button>
+                    <button class="control-btn" onclick="collapseAllSections()">摺疊全部</button>
+                    <select class="filter-select" onchange="filterStocks(this.value)">
+                        <option value="all">全部</option>
+                        <option value="buy">只看買入</option>
+                        <option value="hold">只看持有</option>
+                        <option value="sell">只看賣出</option>
+                    </select>
+                    <select class="sort-select" onchange="sortStocks(this.value)">
+                        <option value="score">按評分排序</option>
+                        <option value="ticker">按代號排序</option>
+                        <option value="risk">按風險排序</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Hot Stocks Analysis -->
+            {% if top_stocks %}
+            <div class="analysis-section collapsible" id="section-hot-stocks">
+                <div class="section-header clickable" onclick="toggleSection('hot-stocks-content')">
+                    <h3 class="section-title">
+                        <span class="title-icon">🔥</span>
+                        熱門股票分析
+                        <span class="count-badge">{{ top_stocks | length }} 檔</span>
+                    </h3>
+                    <span class="expand-icon">▼</span>
+                </div>
+                
+                <div class="section-content" id="hot-stocks-content">
+                    <div class="stocks-grid">
+                        {% for stock in top_stocks %}
+                        <div class="stock-card-detailed" data-action="{{ stock.action | lower }}" data-score="{{ stock.score }}" data-risk="{{ stock.risk_level }}">
+                            <!-- Card Header - Always Visible -->
+                            <div class="card-header-main">
+                                <div class="header-row-1">
+                                    <div class="stock-identity">
+                                        <h4 class="ticker">{{ stock.sentiment_emoji }} {{ stock.ticker }}</h4>
+                                        <span class="stock-name">{{ stock.name }}</span>
+                                    </div>
+                                    <div class="score-badge">
+                                        <span class="score-number">{{ stock.score }}</span>
+                                        <span class="score-total">/100</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="header-row-2">
+                                    <div class="action-badge-large {{ stock.action | lower }}">
+                                        {{ stock.action_emoji | default('🟡') }} {{ stock.action | default('HOLD') }}
+                                    </div>
+                                    <div class="quick-stats">
+                                        <span class="stat-item">風險: <strong class="risk-{{ stock.risk_level | lower }}">{{ stock.risk_level }}</strong></span>
+                                        <span class="stat-item">RSI: <strong>{{ "%.1f"|format(stock.rsi) if stock.rsi else 'N/A' }}</strong></span>
+                                        <span class="stat-item">{{ stock.count }} 提及</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Expandable Details -->
+                            <details class="card-details">
+                                <summary class="details-trigger">
+                                    <span class="trigger-text">查看詳細分析</span>
+                                    <span class="trigger-icon">▶</span>
+                                </summary>
+                                
+                                <div class="details-content">
+                                    <!-- Score Breakdown -->
+                                    <div class="score-breakdown">
+                                        <h5 class="detail-title">綜合評分明細</h5>
+                                        <div class="breakdown-bars">
+                                            {% for component in stock.score_components %}
+                                            <div class="breakdown-item">
+                                                <span class="component-label">{{ component.name }}</span>
+                                                <div class="component-bar">
+                                                    <div class="component-fill {{ component.class | default('') }}" style="width: {{ component.score }}%;"></div>
+                                                </div>
+                                                <span class="component-score">{{ component.score }}/100</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Price Action -->
+                                    <div class="price-action-section">
+                                        <h5 class="detail-title">價位建議</h5>
+                                        <div class="price-grid">
+                                            <div class="price-box current">
+                                                <span class="price-label">當前價格</span>
+                                                <span class="price-value">${{ "%.2f"|format(stock.current_price) if stock.current_price else 'N/A' }}</span>
+                                            </div>
+                                            <div class="price-box entry">
+                                                <span class="price-label">建議買入</span>
+                                                <span class="price-value">${{ "%.2f"|format(stock.entry_price) if stock.entry_price else 'N/A' }}</span>
+                                            </div>
+                                            <div class="price-box target">
+                                                <span class="price-label">目標價位</span>
+                                                <span class="price-value">${{ "%.2f"|format(stock.target_price) if stock.target_price else 'N/A' }}</span>
+                                            </div>
+                                            <div class="price-box stop">
+                                                <span class="price-label">停損價位</span>
+                                                <span class="price-value">${{ "%.2f"|format(stock.stop_loss) if stock.stop_loss else 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="support-resistance">
+                                            <div class="sr-item">
+                                                <span class="sr-label">支撐位</span>
+                                                <span class="sr-values">{{ stock.support_levels | join(', ') if stock.support_levels else 'N/A' }}</span>
+                                            </div>
+                                            <div class="sr-item">
+                                                <span class="sr-label">阻力位</span>
+                                                <span class="sr-values">{{ stock.resistance_levels | join(', ') if stock.resistance_levels else 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Technical Analysis -->
+                                    {% if stock.technical %}
+                                    <div class="technical-section">
+                                        <h5 class="detail-title">技術指標</h5>
+                                        
+                                        <div class="rsi-section">
+                                            <div class="rsi-header">
+                                                <span class="rsi-label">RSI (14)</span>
+                                                <span class="rsi-value">{{ "%.1f"|format(stock.technical.rsi) }}</span>
+                                            </div>
+                                            <div class="rsi-gauge">
+                                                <div class="gauge-track">
+                                                    <div class="gauge-zone oversold"></div>
+                                                    <div class="gauge-zone neutral"></div>
+                                                    <div class="gauge-zone overbought"></div>
+                                                </div>
+                                                <div class="gauge-needle" style="left: {{ stock.technical.rsi }}%;"></div>
+                                            </div>
+                                            <p class="rsi-hint">
+                                                {% if stock.technical.rsi < 30 %}
+                                                🟢 超賣區 - 可能的反彈機會
+                                                {% elif stock.technical.rsi > 70 %}
+                                                🔴 超買區 - 可能的回調風險
+                                                {% else %}
+                                                🟡 正常區間 - 無極端信號
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="trend-indicators">
+                                            <div class="trend-item">
+                                                <span class="trend-label">短期趨勢</span>
+                                                <span class="trend-value">{{ stock.technical.trend_short | default('N/A') }}</span>
+                                            </div>
+                                            <div class="trend-item">
+                                                <span class="trend-label">中期趨勢</span>
+                                                <span class="trend-value">{{ stock.technical.trend_medium | default('N/A') }}</span>
+                                            </div>
+                                            <div class="trend-item">
+                                                <span class="trend-label">7日漲跌</span>
+                                                <span class="trend-value {{ 'positive' if stock.technical.change_7d > 0 else 'negative' }}">
+                                                    {{ '%+.1f'|format(stock.technical.change_7d) }}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Fundamentals -->
+                                    {% if stock.fundamentals %}
+                                    <div class="fundamentals-section">
+                                        <h5 class="detail-title">基本面數據</h5>
+                                        <table class="fundamentals-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>指標</th>
+                                                    <th>數值</th>
+                                                    <th>行業均值</th>
+                                                    <th>評估</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>P/E 本益比</td>
+                                                    <td>{{ "%.2f"|format(stock.fundamentals.pe_ratio) if stock.fundamentals.pe_ratio else "N/A" }}</td>
+                                                    <td>{{ "%.2f"|format(stock.fundamentals.industry_pe | default(0)) }}</td>
+                                                    <td class="status-{{ stock.fundamentals.pe_status | default('neutral') }}">
+                                                        {{ stock.fundamentals.pe_status_emoji | default('➡️') }} {{ stock.fundamentals.pe_status | default('中性') | title }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>P/B 股淨比</td>
+                                                    <td>{{ "%.2f"|format(stock.fundamentals.pb_ratio) if stock.fundamentals.pb_ratio else "N/A" }}</td>
+                                                    <td>{{ "%.2f"|format(stock.fundamentals.industry_pb | default(0)) }}</td>
+                                                    <td class="status-{{ stock.fundamentals.pb_status | default('neutral') }}">
+                                                        {{ stock.fundamentals.pb_status_emoji | default('➡️') }} {{ stock.fundamentals.pb_status | default('中性') | title }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>ROE 股東權益報酬率</td>
+                                                    <td>{{ "%.1f"|format(stock.fundamentals.roe) if stock.fundamentals.roe else "N/A" }}{{ "%" if stock.fundamentals.roe else "" }}</td>
+                                                    <td>{{ "%.1f"|format(stock.fundamentals.industry_roe | default(0)) }}%</td>
+                                                    <td class="status-{{ stock.fundamentals.roe_status | default('neutral') }}">
+                                                        {{ stock.fundamentals.roe_status_emoji | default('➡️') }} {{ stock.fundamentals.roe_status | default('中性') | title }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>負債/權益比</td>
+                                                    <td>{{ "%.2f"|format(stock.fundamentals.debt_equity) }}</td>
+                                                    <td>{{ "%.2f"|format(stock.fundamentals.industry_de | default(0)) }}</td>
+                                                    <td class="status-{{ stock.fundamentals.de_status | default('neutral') }}">
+                                                        {{ stock.fundamentals.de_status_emoji | default('➡️') }} {{ stock.fundamentals.de_status | default('中性') | title }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Risk Assessment -->
+                                    <div class="risk-section">
+                                        <h5 class="detail-title">風險評估</h5>
+                                        <div class="risk-meter-detailed">
+                                            <div class="meter-track">
+                                                <div class="meter-section low"></div>
+                                                <div class="meter-section medium"></div>
+                                                <div class="meter-section high"></div>
+                                            </div>
+                                            <div class="meter-marker {{ stock.risk_level | lower }}" style="left: {{ stock.risk_position | default(50) }}%;"></div>
+                                        </div>
+                                        <div class="meter-labels">
+                                            <span>低風險</span>
+                                            <span>中風險</span>
+                                            <span>高風險</span>
+                                        </div>
+                                        
+                                        {% if stock.risk_factors %}
+                                        <ul class="risk-factors-list">
+                                            {% for factor in stock.risk_factors %}
+                                            <li class="risk-factor-item risk-{{ factor.type | default('neutral') }}">
+                                                {{ factor.icon | default('○') }} {{ factor.text }}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Reddit Discussions -->
+                                    {% if stock.posts %}
+                                    <div class="reddit-section">
+                                        <h5 class="detail-title">Reddit 討論摘要</h5>
+                                        <div class="keyword-tags">
+                                            {% for keyword in stock.keywords[:8] %}
+                                            <span class="keyword-tag">{{ keyword.word }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <div class="posts-preview">
+                                            {% for post in stock.posts[:3] %}
+                                            <div class="post-card post-{{ post.sentiment }}">
+                                                <div class="post-header">
+                                                    <span class="post-sentiment">{{ post.sentiment_emoji | default('📝') }} {{ post.sentiment | title }}</span>
+                                                    <span class="post-subreddit">{{ post.subreddit | default('r/stocks') }}</span>
+                                                </div>
+                                                <p class="post-title">{{ post.title }}</p>
+                                                {% if post.url %}
+                                                <a href="{{ post.url }}" class="post-link" target="_blank" rel="noopener">查看原文 →</a>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Data Sources -->
+                                    <div class="sources-footer">
+                                        <span class="source-tag">📱 Reddit ({{ stock.count }})</span>
+                                        <span class="source-tag">💰 Yahoo Finance</span>
+                                        {% if stock.technical %}
+                                        <span class="source-tag">📈 技術分析</span>
+                                        {% endif %}
+                                        <span class="source-tag last-updated">最後更新: {{ stock.last_updated | default(generated_at) }}</span>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Undervalued Stocks -->
+            {% if undervalued_stocks %}
+            <div class="analysis-section collapsible" id="section-undervalued">
+                <div class="section-header clickable" onclick="toggleSection('undervalued-content')">
+                    <h3 class="section-title">
+                        <span class="title-icon">💎</span>
+                        被低估股票
+                        <span class="count-badge">{{ undervalued_stocks | length }} 檔</span>
+                    </h3>
+                    <span class="expand-icon">▼</span>
+                </div>
+                
+                <div class="section-content" id="undervalued-content">
+                    <div class="undervalued-grid">
+                        {% for stock in undervalued_stocks %}
+                        <div class="undervalued-card">
+                            <div class="uv-header">
+                                <div class="uv-ticker">{{ stock.ticker }}</div>
+                                <div class="uv-score">
+                                    <span class="score-val">{{ stock.score }}</span>
+                                    <span class="score-max">/100</span>
+                                </div>
+                            </div>
+                            
+                            <div class="uv-breakdown">
+                                <div class="uv-item">
+                                    <span class="uv-label">超賣程度</span>
+                                    <div class="uv-bar">
+                                        <div class="uv-fill" style="width: {{ stock.oversold_score | default(0) }}%;"></div>
+                                    </div>
+                                    <span class="uv-val">{{ stock.oversold_score | default(0) }}</span>
+                                </div>
+                                <div class="uv-item">
+                                    <span class="uv-label">被忽視度</span>
+                                    <div class="uv-bar">
+                                        <div class="uv-fill" style="width: {{ stock.neglect_score | default(0) }}%;"></div>
+                                    </div>
+                                    <span class="uv-val">{{ stock.neglect_score | default(0) }}</span>
+                                </div>
+                                <div class="uv-item">
+                                    <span class="uv-label">技術面</span>
+                                    <div class="uv-bar">
+                                        <div class="uv-fill" style="width: {{ stock.technical_score | default(0) }}%;"></div>
+                                    </div>
+                                    <span class="uv-val">{{ stock.technical_score | default(0) }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="uv-details">
+                                <div class="uv-detail-row">
+                                    <span>價格:</span>
+                                    <strong>${{ "%.2f"|format(stock.current_price) if stock.current_price else 'N/A' }}</strong>
+                                </div>
+                                <div class="uv-detail-row">
+                                    <span>RSI:</span>
+                                    <strong>{{ "%.1f"|format(stock.rsi) if stock.rsi else 'N/A' }}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="uv-reasons">
+                                {% for reason in stock.reasons[:2] %}
+                                <span class="reason-tag">✓ {{ reason }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- ==================== METHODOLOGY & DISCLAIMER ==================== -->
+        <footer class="report-footer">
+            <div class="footer-section methodology">
+                <h3 class="footer-title">📚 分析方法論</h3>
+                <div class="methodology-grid">
+                    <div class="method-item">
+                        <h4>數據來源</h4>
+                        <ul>
+                            <li>Reddit: r/wallstreetbets, r/stocks, r/investing</li>
+                            <li>價格數據: Yahoo Finance API</li>
+                            <li>技術指標: 自行計算 (RSI-14, SMA-20/50)</li>
+                        </ul>
+                    </div>
+                    <div class="method-item">
+                        <h4>評分方法</h4>
+                        <ul>
+                            <li>情緒分析 (40%): Reddit 貼文情感傾向</li>
+                            <li>技術面 (30%): RSI, 趨勢, 動量</li>
+                            <li>基本面 (20%): 估值, 獲利能力</li>
+                            <li>風險評估 (10%): 波動度, 流動性</li>
+                        </ul>
+                    </div>
+                    <div class="method-item">
+                        <h4>時間範圍</h4>
+                        <ul>
+                            <li>Reddit 數據: 最近 {{ reddit_stats.period | default('7 天') }}</li>
+                            <li>價格更新: {{ price_update_time | default(generated_at) }}</li>
+                            <li>報告生成: {{ generated_at }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-section disclaimer">
+                <div class="disclaimer-icon">⚠️</div>
+                <div class="disclaimer-content">
+                    <h3>重要免責聲明</h3>
+                    <p>本報告僅供參考，不構成投資建議。所有投資決策應基於您自己的研究和風險承受能力。過去的表現不代表未來結果。股票投資涉及風險，可能導致本金損失。</p>
+                    <p class="disclaimer-note">Generated by Stock Analyzer Pro | {{ generated_at }} | 數據僅供參考，請獨立驗證</p>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        // Toggle section visibility
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const header = section.previousElementSibling;
+            const icon = header.querySelector('.expand-icon');
+            
+            section.classList.toggle('collapsed');
+            icon.textContent = section.classList.contains('collapsed') ? '▶' : '▼';
+        }
+        
+        // Expand all sections
+        function expandAllSections() {
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.remove('collapsed');
+                const header = section.previousElementSibling;
+                const icon = header.querySelector('.expand-icon');
+                if (icon) icon.textContent = '▼';
+            });
+        }
+        
+        // Collapse all sections
+        function collapseAllSections() {
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('collapsed');
+                const header = section.previousElementSibling;
+                const icon = header.querySelector('.expand-icon');
+                if (icon) icon.textContent = '▶';
+            });
+        }
+        
+        // Filter stocks by action
+        function filterStocks(filter) {
+            document.querySelectorAll('.stock-card-detailed').forEach(card => {
+                const action = card.dataset.action;
+                if (filter === 'all' || action === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Sort stocks
+        function sortStocks(sortBy) {
+            const grid = document.querySelector('.stocks-grid');
+            const cards = Array.from(grid.querySelectorAll('.stock-card-detailed'));
+            
+            cards.sort((a, b) => {
+                switch(sortBy) {
+                    case 'score':
+                        return parseInt(b.dataset.score) - parseInt(a.dataset.score);
+                    case 'ticker':
+                        return a.querySelector('.ticker').textContent.localeCompare(b.querySelector('.ticker').textContent);
+                    case 'risk':
+                        const riskOrder = { 'low': 1, 'medium': 2, 'high': 3 };
+                        return riskOrder[a.dataset.risk] - riskOrder[b.dataset.risk];
+                    default:
+                        return 0;
+                }
+            });
+            
+            cards.forEach(card => grid.appendChild(card));
+        }
+        
+        // Initialize charts (placeholder for Chart.js integration)
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if chart_data_json %}
+            const chartData = {{ chart_data_json | safe }};
+            // Initialize charts here
+            {% endif %}
+        });
+    </script>
+</body>
+</html>

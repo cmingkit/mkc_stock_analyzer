@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="../static/css/report.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>📊 {{ title }}</h1>
+        <div class="header-meta">
+            <span>Generated: {{ generated_at }}</span>
+            <span>Data Period: {{ data_period | default('7 days') }}</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Overall Summary -->
+        <section class="section summary-section">
+            <h2>📈 Market Overview</h2>
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <span class="summary-value">{{ total_mentions | default(0) }}</span>
+                    <span class="summary-label">Total Mentions</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-value">{{ avg_sentiment | default('Neutral') }}</span>
+                    <span class="summary-label">Avg Sentiment</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-value">{{ stocks_analyzed | default(0) }}</span>
+                    <span class="summary-label">Stocks Analyzed</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hot Stocks with Enhanced Details -->
+        {% if top_stocks %}
+        <section class="section">
+            <h2>🔥 Hot Stocks (Reddit Discussion)</h2>
+            <div class="stocks-grid">
+                {% for stock in top_stocks %}
+                <div class="stock-card-enhanced {{ stock.sentiment }}" id="stock-{{ stock.ticker }}">
+                    <!-- Header -->
+                    <div class="stock-header">
+                        <div class="stock-title">
+                            <h3>{{ stock.sentiment_emoji }} {{ stock.ticker }}</h3>
+                            <span class="stock-name">{{ stock.name }}</span>
+                        </div>
+                        <div class="metadata-bar">
+                            <span class="meta-item" title="Analysis Period">
+                                📅 {{ stock.analysis_period | default('7 days') }}
+                            </span>
+                            <span class="meta-item" title="Sample Size">
+                                📊 {{ stock.count }} mentions
+                            </span>
+                            <span class="meta-item" title="Confidence Level">
+                                🎯 <span class="confidence-{{ stock.confidence | default('medium') }}">{{ stock.confidence | default('Medium') }}</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Sentiment Analysis Section -->
+                    <div class="analysis-section">
+                        <h4>💬 Sentiment Analysis</h4>
+                        
+                        <!-- Sentiment Distribution Chart -->
+                        <div class="chart-container sentiment-chart">
+                            <canvas id="sentiment-{{ stock.ticker }}"></canvas>
+                        </div>
+                        
+                        <!-- Sentiment Stats -->
+                        <div class="sentiment-stats">
+                            <div class="stat-item positive">
+                                <span class="stat-label">Bullish</span>
+                                <span class="stat-value">{{ "%.0f"|format(stock.bull_ratio * 100) }}%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Risk</span>
+                                <span class="stat-value risk-{{ stock.risk_level | lower }}">{{ stock.risk_level }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Keyword Cloud -->
+                        {% if stock.keywords %}
+                        <div class="keyword-cloud">
+                            {% for keyword in stock.keywords[:10] %}
+                            <span class="keyword" style="font-size: {{ keyword.size | default(1.0) }}em;">
+                                {{ keyword.word }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Reddit Posts Excerpts -->
+                        {% if stock.posts %}
+                        <details class="post-excerpts">
+                            <summary>📝 View Reddit Posts ({{ stock.count }} posts)</summary>
+                            <div class="posts-list">
+                                {% for post in stock.posts[:5] %}
+                                <div class="post-item {{ post.sentiment }}">
+                                    <div class="post-header">
+                                        <span class="post-sentiment">{{ post.sentiment_emoji | default('📝') }} {{ post.sentiment | title }}</span>
+                                        <span class="post-source">{{ post.subreddit | default('r/stocks') }}</span>
+                                    </div>
+                                    <p class="post-title">{{ post.title }}</p>
+                                    {% if post.url %}
+                                    <a href="{{ post.url }}" class="post-link" target="_blank">View Post →</a>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </div>
+
+                    <!-- Technical Analysis Section -->
+                    {% if stock.technical %}
+                    <div class="analysis-section">
+                        <h4>📊 Technical Analysis</h4>
+                        
+                        <!-- RSI Gauge -->
+                        {% if stock.technical.rsi %}
+                        <div class="rsi-gauge">
+                            <div class="rsi-label">
+                                <span>RSI (14)</span>
+                                <span class="rsi-value">{{ "%.1f"|format(stock.technical.rsi) }}</span>
+                            </div>
+                            <div class="rsi-bar">
+                                <div class="rsi-zones">
+                                    <div class="zone oversold">0-30</div>
+                                    <div class="zone normal">30-70</div>
+                                    <div class="zone overbought">70-100</div>
+                                </div>
+                                <div class="rsi-indicator" style="left: {{ stock.technical.rsi }}%;"></div>
+                            </div>
+                            <p class="rsi-interpretation">
+                                {% if stock.technical.rsi < 30 %}
+                                🟢 <strong>Oversold</strong> - Potential buying opportunity
+                                {% elif stock.technical.rsi > 70 %}
+                                🔴 <strong>Overbought</strong> - Potential selling opportunity
+                                {% else %}
+                                🟡 <strong>Neutral</strong> - No extreme conditions
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Price & MA Chart -->
+                        {% if stock.price_chart %}
+                        <div class="chart-container price-chart">
+                            <canvas id="price-{{ stock.ticker }}"></canvas>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Technical Signal -->
+                        {% if stock.technical %}
+                        <div class="technical-signal">
+                            <div class="signal-badge {{ stock.technical.signal_type | default('hold') }}">
+                                {{ stock.technical.signal_emoji | default('🟡') }} {{ stock.technical.signal_text | default('HOLD') }}
+                            </div>
+                            <ul class="signal-reasons">
+                                <li>RSI: {{ stock.technical.rsi | default('N/A') }}</li>
+                                <li>Trend: {{ stock.technical.trend_emoji | default('➡️') }} {{ stock.technical.trend | default('neutral') }}</li>
+                                <li>7d Change: {{ "%.1f"|format(stock.technical.change_7d | default(0)) }}%</li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Risk Assessment Section -->
+                    {% if stock.fundamentals %}
+                    <div class="analysis-section">
+                        <h4>⚠️ Risk Assessment</h4>
+                        
+                        <!-- Valuation Breakdown -->
+                        {% if stock.valuation_factors %}
+                        <div class="valuation-breakdown">
+                            <h5>Why {{ stock.valuation_label | default('Valued') }}?</h5>
+                            <div class="valuation-factors">
+                                {% for factor in stock.valuation_factors %}
+                                <div class="factor">
+                                    <span class="factor-name">{{ factor.name }}</span>
+                                    <div class="factor-bar">
+                                        <div class="factor-fill" style="width: {{ factor.score * 10 }}%;"></div>
+                                    </div>
+                                    <span class="factor-score">{{ factor.score }}/10</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Fundamentals Table -->
+                        <table class="fundamentals-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Industry</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if stock.fundamentals.pe_ratio %}
+                                <tr>
+                                    <td>P/E Ratio</td>
+                                    <td>{{ "%.2f"|format(stock.fundamentals.pe_ratio) }}</td>
+                                    <td>{{ "%.2f"|format(stock.fundamentals.industry_pe | default(0)) }}</td>
+                                    <td class="status-{{ stock.fundamentals.pe_status | default('neutral') }}">{{ stock.fundamentals.pe_status | default('N/A') | title }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if stock.fundamentals.pb_ratio %}
+                                <tr>
+                                    <td>P/B Ratio</td>
+                                    <td>{{ "%.2f"|format(stock.fundamentals.pb_ratio) }}</td>
+                                    <td>{{ "%.2f"|format(stock.fundamentals.industry_pb | default(0)) }}</td>
+                                    <td class="status-{{ stock.fundamentals.pb_status | default('neutral') }}">{{ stock.fundamentals.pb_status | default('N/A') | title }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if stock.fundamentals.roe %}
+                                <tr>
+                                    <td>ROE</td>
+                                    <td>{{ "%.1f"|format(stock.fundamentals.roe) }}%</td>
+                                    <td>{{ "%.1f"|format(stock.fundamentals.industry_roe | default(0)) }}%</td>
+                                    <td class="status-{{ stock.fundamentals.roe_status | default('neutral') }}">{{ stock.fundamentals.roe_status | default('N/A') | title }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if stock.fundamentals.debt_equity %}
+                                <tr>
+                                    <td>Debt/Equity</td>
+                                    <td>{{ "%.2f"|format(stock.fundamentals.debt_equity) }}</td>
+                                    <td>{{ "%.2f"|format(stock.fundamentals.industry_de | default(0)) }}</td>
+                                    <td class="status-{{ stock.fundamentals.de_status | default('neutral') }}">{{ stock.fundamentals.de_status | default('N/A') | title }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        
+                        <!-- Risk Meter -->
+                        <div class="risk-explanation">
+                            <div class="risk-meter">
+                                <div class="risk-levels">
+                                    <div class="level low">Low</div>
+                                    <div class="level medium">Medium</div>
+                                    <div class="level high">High</div>
+                                </div>
+                                <div class="risk-indicator {{ stock.risk_level | lower }}" 
+                                     style="left: {{ stock.risk_position | default(50) }}%;"></div>
+                            </div>
+                            {% if stock.risk_factors %}
+                            <div class="risk-factors">
+                                <h5>Risk Factors:</h5>
+                                <ul>
+                                    {% for factor in stock.risk_factors %}
+                                    <li class="risk-{{ factor.type | default('neutral') }}">{{ factor.icon | default('○') }} {{ factor.text }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actionable Advice -->
+                    {% if stock.advice %}
+                    <div class="actionable-advice">
+                        <h4>💡 Actionable Advice</h4>
+                        <div class="advice-grid">
+                            {% if stock.advice.action == 'BUY' and stock.advice.entry_price %}
+                            <div class="advice-item entry">
+                                <span class="advice-label">Entry Point</span>
+                                <span class="advice-value">${{ "%.2f"|format(stock.advice.entry_price) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if stock.advice.exit_price %}
+                            <div class="advice-item exit">
+                                <span class="advice-label">Exit Point</span>
+                                <span class="advice-value">${{ "%.2f"|format(stock.advice.exit_price) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if stock.advice.stop_loss %}
+                            <div class="advice-item stop-loss">
+                                <span class="advice-label">Stop Loss</span>
+                                <span class="advice-value">${{ "%.2f"|format(stock.advice.stop_loss) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if stock.advice.take_profit %}
+                            <div class="advice-item take-profit">
+                                <span class="advice-label">Take Profit</span>
+                                <span class="advice-value">${{ "%.2f"|format(stock.advice.take_profit) }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if stock.advice.risk_notice %}
+                        <div class="risk-notice">
+                            ⚠️ <strong>Risk Notice:</strong> {{ stock.advice.risk_notice }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Data Sources -->
+                    <div class="data-sources">
+                        <span class="source-tag" title="Reddit posts analyzed">📱 Reddit ({{ stock.count }})</span>
+                        <span class="source-tag" title="Price data">💰 Price Data</span>
+                        {% if stock.technical %}
+                        <span class="source-tag" title="Technical indicators">📈 Technical</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Undervalued Stocks with Enhanced Details -->
+        {% if undervalued_stocks %}
+        <section class="section">
+            <h2>💎 Undervalued Stocks</h2>
+            <table class="data-table sortable" id="undervalued-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('undervalued-table', 0, 'string')">Symbol ↕</th>
+                        <th onclick="sortTable('undervalued-table', 1, 'string')">Name</th>
+                        <th onclick="sortTable('undervalued-table', 2, 'number')">Score ↕</th>
+                        <th onclick="sortTable('undervalued-table', 3, 'number')">Price ↕</th>
+                        <th onclick="sortTable('undervalued-table', 4, 'number')">RSI ↕</th>
+                        <th>Label</th>
+                        <th>Reasons</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in undervalued_stocks %}
+                    <tr>
+                        <td><strong>{{ stock.ticker }}</strong></td>
+                        <td>{{ stock.name }}</td>
+                        <td>{{ "%.0f"|format(stock.score) }}</td>
+                        <td>{{ "$%.2f"|format(stock.current_price) if stock.current_price else "N/A" }}</td>
+                        <td>{{ "%.1f"|format(stock.rsi) if stock.rsi else "N/A" }}</td>
+                        <td>{{ stock.label }}</td>
+                        <td class="reasons-cell">
+                            {% if stock.reasons %}
+                            <ul class="mini-reasons">
+                                {% for reason in stock.reasons[:3] %}
+                                <li>{{ reason }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Undervalued Cards Grid -->
+            <div class="undervalued-grid">
+                {% for stock in undervalued_stocks[:6] %}
+                <div class="undervalued-card">
+                    <div class="undervalued-header">
+                        <h3>{{ stock.ticker }}</h3>
+                        <span class="undervalued-score">{{ "%.0f"|format(stock.score) }}/100</span>
+                    </div>
+                    
+                    <!-- Score Breakdown -->
+                    <div class="score-breakdown">
+                        <div class="score-item">
+                            <span class="score-label">Oversold</span>
+                            <div class="mini-bar">
+                                <div class="mini-fill" style="width: {{ stock.oversold_score | default(0) }}%;"></div>
+                            </div>
+                            <span class="score-val">{{ stock.oversold_score | default(0) }}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="score-label">Neglect</span>
+                            <div class="mini-bar">
+                                <div class="mini-fill" style="width: {{ stock.neglect_score | default(0) }}%;"></div>
+                            </div>
+                            <span class="score-val">{{ stock.neglect_score | default(0) }}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="score-label">Technical</span>
+                            <div class="mini-bar">
+                                <div class="mini-fill" style="width: {{ stock.technical_score | default(0) }}%;"></div>
+                            </div>
+                            <span class="score-val">{{ stock.technical_score | default(0) }}</span>
+                        </div>
+                    </div>
+                    
+                    <table class="fundamentals-mini">
+                        <tr>
+                            <td>Price:</td>
+                            <td><strong>${{ "%.2f"|format(stock.current_price) if stock.current_price else "N/A" }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>RSI:</td>
+                            <td>{{ "%.1f"|format(stock.rsi) if stock.rsi else "N/A" }}</td>
+                        </tr>
+                    </table>
+                    
+                    <div class="current-price">
+                        <span class="rsi-badge">RSI: {{ "%.1f"|format(stock.rsi) if stock.rsi else "N/A" }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Event Alerts -->
+        {% if event_alerts %}
+        <section class="section">
+            <h2>📅 Event Alerts</h2>
+            <div class="alerts-grid">
+                {% for alert in event_alerts %}
+                <div class="alert-card {{ alert.severity | default('medium') }}">
+                    <div class="alert-icon">{{ alert.icon | default('⚠️') }}</div>
+                    <div class="alert-content">
+                        <h4>{{ alert.title | default(alert) }}</h4>
+                        {% if alert.description %}
+                        <p>{{ alert.description }}</p>
+                        {% endif %}
+                        {% if alert.time %}
+                        <span class="alert-time">{{ alert.time }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Data Sources Footer -->
+        <section class="section data-sources-section">
+            <h2>📚 Data Sources & Methodology</h2>
+            <div class="sources-grid">
+                <div class="source-item">
+                    <h4>Reddit Data</h4>
+                    <ul>
+                        <li>Subreddits: r/wallstreetbets, r/stocks, r/investing</li>
+                        <li>Posts analyzed: {{ reddit_stats.total_posts | default('N/A') }}</li>
+                        <li>Time period: {{ reddit_stats.period | default('7 days') }}</li>
+                    </ul>
+                </div>
+                <div class="source-item">
+                    <h4>Price & Fundamentals</h4>
+                    <ul>
+                        <li>Source: Yahoo Finance API</li>
+                        <li>Updated: {{ price_update_time | default(generated_at) }}</li>
+                    </ul>
+                </div>
+                <div class="source-item">
+                    <h4>Technical Indicators</h4>
+                    <ul>
+                        <li>RSI period: 14 days</li>
+                        <li>SMA periods: 20, 50</li>
+                        <li>EMA period: 12</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="disclaimer">
+                <p>⚠️ <strong>Disclaimer:</strong> This report is for informational purposes only and does not constitute investment advice. Always conduct your own research before making investment decisions.</p>
+                <p>Generated by Stock Analyzer | {{ generated_at }}</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>⚠️ For informational purposes only. Not investment advice.</p>
+        <p>Generated by Stock Analyzer | {{ generated_at }}</p>
+    </footer>
+
+    <!-- Chart Initialization Script -->
+    <script src="../static/js/report-charts.js"></script>
+    <script>
+        // Initialize charts with data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chart data will be injected here by the template engine
+            {% if chart_data_json %}
+            const chartData = {{ chart_data_json | safe }};
+            initializeCharts(chartData);
+            {% endif %}
+        });
+    </script>
+</body>
+</html>

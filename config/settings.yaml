@@ -1,0 +1,99 @@
+# Stock Analyzer Configuration
+# Version: 1.0
+
+collection:
+  reddit:
+    subreddits:
+      - wallstreetbets
+      - stocks
+      - stockmarket
+      - investing
+      - personalfinance
+      - ValueInvesting
+      - Dividends
+      - Daytrading
+      - Options
+      - OptionsTrading
+    hot_posts_limit: 30
+    rate_limit_delay: 1.0
+  
+  price:
+    providers:
+      - yfinance
+    cache_ttl: 3600
+    yahoo_api_delay: 2.0
+
+analysis:
+  top_stocks: 15
+  history_days: 90
+  risk_threshold: 0.7
+  
+  sentiment:
+    positive_keywords:
+      - moon
+      - rocket
+      - bullish
+      - buy
+      - go
+      - up
+      - rise
+      - profit
+      - gain
+      - win
+      - growth
+      - explosion
+      - surge
+      - breakout
+      - record
+      - high
+      - strong
+      - power
+      - major
+      - bull
+      - stabilize
+      - recovery
+      - recover
+      - bounce
+      - lift
+      - positive
+      - optimistic
+    negative_keywords:
+      - dump
+      - bearish
+      - sell
+      - down
+      - drop
+      - loss
+      - crash
+      - collapse
+      - plunge
+      - panic
+      - fear
+      - low
+      - bad
+      - worse
+      - bear
+      - short
+      - shorting
+      - fall
+      - decline
+      - slump
+      - slide
+
+report:
+  output_dir: reports
+  formats:
+    - html
+    - json
+  template_dir: templates
+
+logging:
+  level: INFO
+  file: logs/app.log
+  rotation: "10 MB"
+  retention: "30 days"
+
+schedule:
+  daily: "0 9 * * 1-5"
+  alerts: "0 * * * 1-5"
+  weekly: "0 8 * * 1"

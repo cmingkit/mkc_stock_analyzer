@@ -1,0 +1,49 @@
+name: Daily Stock Analysis
+
+on:
+  schedule:
+    # 每天 HKT 07:00 執行（UTC 23:00）
+    - cron: '0 23 * * *'
+  workflow_dispatch:  # 手動觸發
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run analysis
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+        REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+      run: |
+        python src/main.py --mode daily --output-dir docs/reports --no-telegram
+    
+    - name: Update index page
+      run: |
+        python scripts/generate_index.py
+    
+    - name: Commit and push reports
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/
+        git commit -m "📊 Update reports - $(date '+%Y-%m-%d %H:%M')" || echo "No changes"
+        git push
