@@ -1,7 +1,13 @@
 {
-  "generatedAt": "2026-11-01T01:55:06.339682",
-  "totalReports": 244,
+  "generatedAt": "2026-11-02T02:08:14.975819",
+  "totalReports": 245,
   "reports": [
+    {
+      "name": "report_20261102_020814.html",
+      "path": "reports/report_20261102_020814.html",
+      "displayDate": "2026/11/02 02:08",
+      "timestamp": "2026-11-02T02:08:14"
+    },
     {
       "name": "report_20261101_015506.html",
       "path": "reports/report_20261101_015506.html",
